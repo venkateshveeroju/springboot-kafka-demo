@@ -1,15 +1,12 @@
-package example;
+package com.example.demo;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.example.demo.service.SendEmailOnAccountOpeningService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import example.service.SendEmailOnAccountOpeningService;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.mail.MailException;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
@@ -36,35 +33,43 @@ public class Consumer {
     }
 
 
-    @KafkaListener(id = "myConsumer", topics = "topic_0", groupId = "springboot-group-1", autoStartup = "false")
-    public void listenToProjectStatusChange(String record) throws JsonProcessingException {
+    @KafkaListener(
+            id = "myConsumer",
+            topics = "topic_0",
+            groupId = "springboot-group-1",
+            autoStartup = "true"
+    )
+    public void listenToProjectStatusChange(String record) {
+        try {
+            logger.info("Raw message: {}", record);
 
-        ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = new ObjectMapper();
 
-        if (record.startsWith("{")) {
-            EmailDTO payload = objectMapper.readValue(record, EmailDTO.class);
+
+// First, read it as a plain String (unescape JSON)
+            String json = objectMapper.readValue(record, String.class);
+
+// Then parse that JSON into EmailDTO
+            EmailDTO payload = objectMapper.readValue(json, EmailDTO.class);
+
+
             logger.info("Email payload received: {}", payload);
+
             if (payload == null || payload.getToEmail() == null) {
                 logger.warn("Invalid email payload received");
                 return;
             }
-            try {
-                sendEmailOnAccountOpeningService.sendSimpleEmail(
-                        payload.getToEmail(),
-                        payload.getSubject(),
-                        payload.getEmailBody()
-                );
-            } catch (MailException e) {
-                logger.error("Could not send e-mail", e);
-            }
-            // proceed with email sending
-        } else {
-            logger.warn("Received non-JSON message: {}", record.toString());
+
+            sendEmailOnAccountOpeningService.sendSimpleEmail(
+                    payload.getToEmail(),
+                    payload.getSubject(),
+                    payload.getEmailBody()
+            );
+
+        } catch (Exception e) {
+            logger.error("Error processing Kafka message: {}", record, e);
         }
-
-
-
-
-
     }
+
+
 }

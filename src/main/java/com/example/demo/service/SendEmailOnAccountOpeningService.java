@@ -1,4 +1,4 @@
-package example.service;
+package com.example.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 public class SendEmailOnAccountOpeningService {
     @Autowired
     private JavaMailSender javaMailSender;
-
-
     public void sendSimpleEmail(String toEmail, String subject, String body) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("testveertestveer@gmail.com");
